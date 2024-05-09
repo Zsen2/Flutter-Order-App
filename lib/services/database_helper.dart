@@ -7,9 +7,10 @@ import 'dart:async';
 class DatabaseHelper {
   static StreamController<List<CustomerList>>? _customerStreamController;
   static StreamController<List<ProductList>>? _productStreamController;
+  static StreamController<List<UnitList>>? _unitStreamController;
 
   static const int _version = 1;
-  static const String _dbname = 'database2.db';
+  static const String _dbname = 'database3.db';
 
   static Future<Database> _getDB() async {
     return openDatabase(
@@ -42,6 +43,12 @@ class DatabaseHelper {
         CREATE TABLE IF NOT EXISTS ProductList(
           id INTEGER PRIMARY KEY AUTOINCREMENT, 
           product TEXT
+        )
+      ''');
+        await db.execute('''
+        CREATE TABLE IF NOT EXISTS UnitList(
+          id INTEGER PRIMARY KEY AUTOINCREMENT, 
+          unit TEXT
         )
       ''');
       },
@@ -226,6 +233,53 @@ class DatabaseHelper {
       product.toJson(),
       where: 'id = ?',
       whereArgs: [product.id],
+    );
+  }
+
+  static Future<int> addUnit(UnitList unitList) async {
+    final db = await _getDB();
+    return await db.insert('UnitList', unitList.toJson());
+  }
+
+  static Future<List<UnitList>> getUnits() async {
+    final db = await _getDB();
+    final List<Map<String, dynamic>> maps = await db.query("UnitList");
+    return List.generate(
+        maps.length, (index) => UnitList.fromJson(maps[index]));
+  }
+
+  static Stream<List<UnitList>> unitStream() {
+    _unitStreamController
+        ?.close(); // Close existing stream controller if any to avoid multiple subscriptions
+    _unitStreamController = StreamController<List<UnitList>>.broadcast(
+      onListen: () async {
+        while (_unitStreamController!.hasListener) {
+          final units = await getUnits();
+          _unitStreamController!.add(units);
+          await Future.delayed(const Duration(
+              milliseconds: 500)); // Adjust the frequency as needed
+        }
+      },
+    );
+    return _unitStreamController!.stream;
+  }
+
+  static Future<int> deleteUnit(int unitId) async {
+    final db = await _getDB();
+    return await db.delete(
+      'UnitList',
+      where: 'id = ?',
+      whereArgs: [unitId],
+    );
+  }
+
+  static Future<int> updateUnit(UnitList unit) async {
+    final db = await _getDB();
+    return await db.update(
+      'UnitList',
+      unit.toJson(),
+      where: 'id = ?',
+      whereArgs: [unit.id],
     );
   }
 }

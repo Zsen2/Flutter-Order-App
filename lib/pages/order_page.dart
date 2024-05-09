@@ -18,14 +18,14 @@ class OrderPage extends StatefulWidget {
 class _OrderPageState extends State<OrderPage> {
   List<String> customers = [];
   List<String> products = [];
-  var units = ['kg', 'pieces'];
+  List<String> units = [];
 
   final List<OrderTable> orderDetailsList = [];
   bool isEditMode = false;
   OrderTable? currentlyEditingRow;
 
   String _dropdownValue1 = '';
-  String _dropdownValue2 = 'kg';
+  String _dropdownValue2 = '';
   String _dropdownValue3 = '';
 
   final TextEditingController _quantityController = TextEditingController();
@@ -45,6 +45,9 @@ class _OrderPageState extends State<OrderPage> {
   void fetchCustomersAndProducts() async {
     List<CustomerList> fetchedCustomers = await DatabaseHelper.getCustomers();
     List<ProductList> fetchedProducts = await DatabaseHelper.getProducts();
+    List<UnitList> fetchedUnits = await DatabaseHelper.getUnits();
+
+    List<String> unitNames = fetchedUnits.map((unit) => unit.unit).toList();
 
     List<String> customerNames =
         fetchedCustomers.map((customer) => customer.customer).toList();
@@ -57,7 +60,9 @@ class _OrderPageState extends State<OrderPage> {
           customerNames.isNotEmpty ? customerNames : ['No Customers Available'];
       products =
           productNames.isNotEmpty ? productNames : ['No Products Available'];
+      units = unitNames.isNotEmpty ? unitNames : ['No Units Available'];
 
+      _dropdownValue2 = units.first;
       _dropdownValue3 = customers.first;
       _dropdownValue1 = products.first;
     });
@@ -122,6 +127,15 @@ class _OrderPageState extends State<OrderPage> {
                   child: buildDropdown('Select unit', _dropdownValue2,
                       _updateDropdownValue2, units),
                 ),
+                Padding(
+                  padding: const EdgeInsets.only(left: 10),
+                  child: Container(
+                    decoration: BoxDecoration(
+                        border: Border.all(width: 1, color: Colors.grey),
+                        borderRadius: BorderRadius.circular(8)),
+                    child: addButton(context, 'Unit'),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 20),
@@ -166,6 +180,7 @@ class _OrderPageState extends State<OrderPage> {
 
   Widget buildDropdown(String hintText, String value,
       Function(String?) onChanged, List<String> items) {
+    items.sort();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
@@ -192,7 +207,6 @@ class _OrderPageState extends State<OrderPage> {
       onPressed: () {
         Navigator.pushNamed(context, '/addcustomerproduct', arguments: type)
             .then((_) => fetchCustomersAndProducts());
-        ;
       },
     );
   }
@@ -245,7 +259,19 @@ class _OrderPageState extends State<OrderPage> {
       String unit = _dropdownValue2;
       String customer = _dropdownValue3;
 
-      // Parse the quantity from the text controller
+      if (customer == "No Customers Available") {
+        _showSnackBar('No customers available. Please add customers first.');
+        return;
+      }
+      if (product == "No Products Available") {
+        _showSnackBar('No products available. Please add products first.');
+        return;
+      }
+      if (unit == "No Units Available") {
+        _showSnackBar('No units available. Please add units first.');
+        return;
+      }
+
       int quantity;
       try {
         quantity = int.parse(_quantityController.text);
@@ -254,10 +280,9 @@ class _OrderPageState extends State<OrderPage> {
         }
       } catch (e) {
         _showSnackBar('Please enter a valid positive integer for quantity.');
-        return; // Exit the method if an error occurs
+        return;
       }
 
-      // Add the order if no error occurred during quantity parsing
       orderDetailsList.add(OrderTable(
         product: product,
         quantity: quantity,
@@ -266,12 +291,10 @@ class _OrderPageState extends State<OrderPage> {
         date: Utils.formatDate(DateTime.now()),
       ));
 
-      // Clear the quantity text controller for the next input
       _quantityController.clear();
     });
   }
 
-  //Input Handlers
   void _saveOrder() async {
     if (orderDetailsList.isEmpty) {
       _showSnackBar('No orders to save.');

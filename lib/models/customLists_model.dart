@@ -37,3 +37,23 @@ class ProductList {
         'product': product,
       };
 }
+
+class UnitList {
+  final int? id;
+  final String unit;
+
+  const UnitList({
+    required this.unit,
+    this.id,
+  });
+
+  factory UnitList.fromJson(Map<String, dynamic> json) => UnitList(
+        id: json["id"],
+        unit: json["unit"],
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'unit': unit,
+      };
+}

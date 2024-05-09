@@ -5,7 +5,8 @@ import 'package:fruit_inv/services/database_helper.dart';
 class AddCustomerProductPage extends StatefulWidget {
   final String type;
 
-  const AddCustomerProductPage({super.key, required this.type});
+  const AddCustomerProductPage({Key? key, required this.type})
+      : super(key: key);
 
   @override
   _AddCustomerProductPageState createState() => _AddCustomerProductPageState();
@@ -24,8 +25,10 @@ class _AddCustomerProductPageState extends State<AddCustomerProductPage> {
   void _updateStream() {
     if (widget.type == 'Customer') {
       _currentStream = DatabaseHelper.customerStream();
-    } else {
+    } else if (widget.type == 'Product') {
       _currentStream = DatabaseHelper.productStream();
+    } else if (widget.type == 'Unit') {
+      _currentStream = DatabaseHelper.unitStream();
     }
   }
 
@@ -45,8 +48,11 @@ class _AddCustomerProductPageState extends State<AddCustomerProductPage> {
               itemBuilder: (context, index) {
                 final item = snapshot.data![index];
                 return ListTile(
-                  title: Text(
-                      widget.type == 'Customer' ? item.customer : item.product),
+                  title: Text(widget.type == 'Customer'
+                      ? item.customer
+                      : widget.type == 'Product'
+                          ? item.product
+                          : item.unit),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -58,7 +64,9 @@ class _AddCustomerProductPageState extends State<AddCustomerProductPage> {
                         icon: const Icon(Icons.delete),
                         onPressed: () => widget.type == 'Customer'
                             ? DatabaseHelper.deleteCustomer(item.id)
-                            : DatabaseHelper.deleteProduct(item.id),
+                            : widget.type == 'Product'
+                                ? DatabaseHelper.deleteProduct(item.id)
+                                : DatabaseHelper.deleteUnit(item.id),
                       ),
                     ],
                   ),
@@ -106,10 +114,13 @@ class _AddCustomerProductPageState extends State<AddCustomerProductPage> {
                   CustomerList newCustomer =
                       CustomerList(customer: _textFieldController.text);
                   DatabaseHelper.addCustomer(newCustomer);
-                } else {
+                } else if (widget.type == 'Product') {
                   ProductList newProduct =
                       ProductList(product: _textFieldController.text);
                   DatabaseHelper.addProduct(newProduct);
+                } else if (widget.type == 'Unit') {
+                  UnitList newUnit = UnitList(unit: _textFieldController.text);
+                  DatabaseHelper.addUnit(newUnit);
                 }
                 Navigator.of(dialogContext).pop();
               },
@@ -123,7 +134,9 @@ class _AddCustomerProductPageState extends State<AddCustomerProductPage> {
   Future<void> _showEditDialog(BuildContext context, dynamic item) async {
     _textFieldController.text = widget.type == 'Customer'
         ? item.customer
-        : item.product; // Pre-populate text field
+        : widget.type == 'Product'
+            ? item.product
+            : item.unit; // Pre-populate text field
     return showDialog<void>(
       context: context,
       builder: (BuildContext dialogContext) {
@@ -148,11 +161,16 @@ class _AddCustomerProductPageState extends State<AddCustomerProductPage> {
                       id: item.id, // maintain the ID for updating
                       customer: _textFieldController.text);
                   DatabaseHelper.updateCustomer(updatedCustomer);
-                } else {
+                } else if (widget.type == 'Product') {
                   ProductList updatedProduct = ProductList(
                       id: item.id, // maintain the ID for updating
                       product: _textFieldController.text);
                   DatabaseHelper.updateProduct(updatedProduct);
+                } else if (widget.type == 'Unit') {
+                  UnitList updatedUnit = UnitList(
+                      id: item.id, // maintain the ID for updating
+                      unit: _textFieldController.text);
+                  DatabaseHelper.updateUnit(updatedUnit);
                 }
                 Navigator.of(dialogContext).pop();
               },
